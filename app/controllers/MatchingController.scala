@@ -33,7 +33,7 @@ class MatchingController @Inject()(cache: AsyncCacheApi,
         Action.async(parse.json) { implicit rs =>
             val uuid = rs.session.get("UUID")
             uuid match {
-                case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
                 case _ => {
                     val signinUserId = cache.get[Int](uuid.getOrElse("None"))
                     signinUserId.flatMap(userId => {

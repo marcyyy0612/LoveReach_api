@@ -123,3 +123,4 @@ object SignInJsonFormatter {
 
     implicit val signinFromReads: Reads[SignInForm] = Json.reads[SignInForm]
 }
+
