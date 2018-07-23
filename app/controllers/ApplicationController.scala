@@ -44,10 +44,6 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
                         form.profileImage
                     )
                     db.run(Users += user).map { _ =>
-                        val cacheResult = form.userId match {
-                            case Some(userId) => cache.set(uuid, userId)
-                            case _ => Future.successful(Done)
-                        }
                         Ok(Json.obj("result" -> "success")).withSession("UUID" -> uuid)
                     }
                 }

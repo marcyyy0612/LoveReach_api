@@ -30,7 +30,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
         Action.async { implicit rs =>
             val uuid = rs.session.get("UUID")
             uuid match {
-                case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
                 case _ => {
                     def userDBIO(userId: Int) = Users.filter(_.userId === userId.bind).result
 
