@@ -30,7 +30,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
         Action.async { implicit rs =>
             val uuid = rs.session.get("UUID")
             uuid match {
-                case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
                 case _ => {
                     def userDBIO(userId: Int) = Users.filter(_.userId === userId.bind).result
 
@@ -55,7 +55,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
         Action.async { implicit rs =>
             val uuid = rs.session.get("UUID")
             uuid match {
-                case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
                 case _ => {
                     def usersDBIO(id: Int) =
                         Users.filter(_.userId =!= id).result
@@ -78,7 +78,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
 
                     db.run(resultDBIO).recover {
                         case e =>
-                            Ok(Json.obj("result" -> "failure"))
+                            BadRequest(Json.obj("result" -> "failure"))
                     }
                 }
             }
@@ -89,7 +89,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
         Action.async(parse.json) { implicit rs =>
             val uuid = rs.session.get("UUID")
             uuid match {
-                case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
                 case _ => {
                     val signinUserId = cache.get[Int](uuid.getOrElse("None"))
                     signinUserId.flatMap(userId => {
@@ -136,7 +136,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
 
             val uuid = rs.session.get("UUID")
             uuid match {
-                case None => Future.successful(Ok(Json.obj("result" -> "no uuid")))
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "no uuid")))
                 case _ => {
                     def listFollowerDBIO(id: Int) =
                         Users
@@ -167,7 +167,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
 
                     db.run(resultDBIO).recover {
                         case e =>
-                            Ok(Json.obj("result" -> "failure"))
+                            BadRequest(Json.obj("result" -> "failure"))
                     }
                 }
             }
