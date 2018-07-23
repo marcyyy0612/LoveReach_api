@@ -27,3 +27,6 @@ GET         /api/users/messages/:partnerId        controllers.MessagesController
 
 # マッチング処理
 POST        /api/users/matching                   controllers.MatchingController.insertMatchRelation
+
+# 登録店舗処理
+GET         /api/shops/list                       controllers.ShopsController.showShopsList

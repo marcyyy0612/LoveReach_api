@@ -182,11 +182,11 @@ object UsersJsonFormatter {
             "USER_ID" -> user.userId,
             "USER_NAME" -> user.userName,
             "SEX" -> user.sex,
-            "BIRTHDAY" -> user.birthday.toLocalDate,
+//            "BIRTHDAY" -> user.birthday.toLocalDate,
             "PROFILE" -> user.profile,
-            "CREATED_AT" -> user.createdAt.toLocalDate,
-            "MAIL_ADDRESS" -> user.mailAddress,
-            "PASSWORD" -> user.password,
+//            "CREATED_AT" -> user.createdAt.toLocalDate,
+//            "MAIL_ADDRESS" -> user.mailAddress,
+//            "PASSWORD" -> user.password,
             "PROFILE_IMAGE" -> user.profileImage
         )
     }
@@ -202,6 +202,5 @@ object UsersJsonFormatter {
                         password: String,
                         profileImage: String)
 
-    //    implicit val userFormWrites: Writes[UserForm] = Json.writes[UserForm]
     implicit val userFormReads: Reads[UserForm] = Json.reads[UserForm]
 }

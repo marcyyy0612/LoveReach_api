@@ -98,7 +98,10 @@ object MessageJsonFormatter {
         )
     }
 
-    case class MessageForm(userId: Int, partnerId: Int, message: String, sendDatetime: Timestamp)
+    case class MessageForm(userId: Int,
+                           partnerId: Int,
+                           message: String,
+                           sendDatetime: Timestamp)
 
     implicit val MessageFormReads: Reads[MessageForm] = Json.reads[MessageForm]
 }
