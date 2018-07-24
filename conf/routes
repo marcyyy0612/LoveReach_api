@@ -20,6 +20,7 @@ GET         /api/users/me                         controllers.UsersController.se
 POST        /api/signin                           controllers.ApplicationController.signin
 POST        /api/signup                           controllers.ApplicationController.signup
 GET         /api/signout                          controllers.ApplicationController.signout
+GET         /api/isAlreadySignin                  controllers.ApplicationController.isAlreadySingin
 
 # メッセージ処理
 POST        /api/users/insertMessages             controllers.MessagesController.insertMessages
