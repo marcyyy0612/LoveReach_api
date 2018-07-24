@@ -26,6 +26,10 @@ class UsersController @Inject()(cache: AsyncCacheApi,
     extends AbstractController(cc)
         with HasDatabaseConfigProvider[MySQLProfile] {
 
+    val MALE = Option(1)
+    val FEMALE = Option(2)
+    val DIVER = Option(3)
+
     def selectSigninUser: Action[AnyContent] =
         Action.async { implicit rs =>
             val uuid = rs.session.get("UUID")
@@ -57,6 +61,9 @@ class UsersController @Inject()(cache: AsyncCacheApi,
             uuid match {
                 case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
                 case _ => {
+                    def myInfoDBIO(id: Int) =
+                        Users.filter(_.userId === id).map(_.sex).result.headOption
+
                     def usersDBIO(id: Int) =
                         Users.filter(_.userId =!= id).result
 
@@ -74,7 +81,14 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                         nonSelectedUsers = users.filterNot(user => {
                             selectedUsers.exists(selectedUser => user.userId.contains(selectedUser.partnerId))
                         })
-                    } yield Ok(Json.obj("USERS" -> nonSelectedUsers))
+                        searchGender <- myInfoDBIO(userId)
+                        resultUsers = searchGender match {
+                            case MALE => nonSelectedUsers.filter(_.sex == 2)
+                            case FEMALE => nonSelectedUsers.filter(_.sex == 1)
+                            case DIVER => nonSelectedUsers
+                            case _ => Nil
+                        }
+                    } yield Ok(Json.obj("USERS" -> resultUsers))
 
                     db.run(resultDBIO).recover {
                         case e =>
