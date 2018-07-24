@@ -89,10 +89,24 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
         Action.async { implicit rs =>
             val uuid = rs.session.get("UUID")
             uuid match {
-                case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
                 case _ => {
                     cache.remove(uuid.getOrElse("None"))
                     Future.successful(Ok(Json.obj("result" -> "success")).withNewSession)
+                }
+            }
+        }
+
+    def isAlreadySingin: Action[AnyContent] =
+        Action.async { implicit rs =>
+            val uuid = rs.session.get("UUID")
+            uuid match {
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")).withNewSession)
+                case _ => {
+                    cache.get[Int](uuid.getOrElse("None")).flatMap{
+                        case Some(id) => Future.successful(Ok(Json.obj("result" -> "success")))
+                        case _ => Future.successful(Unauthorized(Json.obj("result" -> "failure")).withNewSession)
+                    }
                 }
             }
         }
