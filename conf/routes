@@ -12,6 +12,7 @@ GET         /assets/*file                         controllers.Assets.versioned(p
 # ユーザ処理
 GET         /api/users/list                       controllers.UsersController.list
 POST        /api/users/update                     controllers.UsersController.update
+POST        /api/users/updateImg                  controllers.UsersController.updateImg
 #POST        /api/users/remove          controllers.UsersController.remove
 GET         /api/users/like                       controllers.UsersController.listMatchingUsers
 GET         /api/users/me                         controllers.UsersController.selectSigninUser
