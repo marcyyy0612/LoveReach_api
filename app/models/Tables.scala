@@ -11,13 +11,21 @@ trait Tables {
   val profile: slick.jdbc.JdbcProfile
 
   import profile.api._
+  //  import com.github.tototoshi.slick.MySQLJodaSupport._
+  //  import org.joda.time._
   import slick.model.ForeignKeyAction
   // NOTE: GetResult mappers for plain SQL are only generated for tables where Slick knows how to map the types of all columns.
   import slick.jdbc.{ GetResult => GR }
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema
-    : profile.SchemaDescription = LoginStatuses.schema ++ MatchRelations.schema ++ Messages.schema ++ Users.schema ++ UsersLocation.schema
+  lazy val schema: profile.SchemaDescription = Array(
+    LoginStatuses.schema,
+    MatchRelations.schema,
+    Messages.schema,
+    Shops.schema,
+    Users.schema,
+    UsersLocation.schema
+  ).reduceLeft(_ ++ _)
 
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
@@ -160,6 +168,42 @@ trait Tables {
 
   /** Collection-like TableQuery object for table Messages */
   lazy val Messages = new TableQuery(tag => new Messages(tag))
+
+  /** Entity class storing rows of table Shops
+    *
+    * @param shopId   Database column SHOP_ID SqlType(INT), AutoInc, PrimaryKey
+    * @param shopName Database column SHOP_NAME SqlType(CHAR), Length(30,false)
+    * @param shopUrl  Database column SHOP_URL SqlType(VARCHAR), Length(128,true) */
+  final case class ShopsRow(shopId: Option[Int] = None, shopName: String, shopUrl: String)
+
+  /** GetResult implicit for fetching ShopsRow objects using plain SQL queries */
+  implicit def GetResultShopsRow(implicit e0: GR[Option[Int]], e1: GR[String]): GR[ShopsRow] = GR { prs =>
+    import prs._
+    ShopsRow.tupled((<<?[Int], <<[String], <<[String]))
+  }
+
+  /** Table description of table SHOPS. Objects of this class serve as prototypes for rows in queries. */
+  class Shops(_tableTag: Tag) extends profile.api.Table[ShopsRow](_tableTag, "SHOPS") {
+    def * = (Rep.Some(shopId), shopName, shopUrl) <> (ShopsRow.tupled, ShopsRow.unapply)
+
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? =
+      (Rep.Some(shopId), Rep.Some(shopName), Rep.Some(shopUrl)).shaped.<>({ r =>
+        import r._; _1.map(_ => ShopsRow.tupled((_1, _2.get, _3.get)))
+      }, (_: Any) => throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column SHOP_ID SqlType(INT), AutoInc, PrimaryKey */
+    val shopId: Rep[Int] = column[Int]("SHOP_ID", O.AutoInc, O.PrimaryKey)
+
+    /** Database column SHOP_NAME SqlType(CHAR), Length(30,false) */
+    val shopName: Rep[String] = column[String]("SHOP_NAME", O.Length(30, varying = false))
+
+    /** Database column SHOP_URL SqlType(VARCHAR), Length(128,true) */
+    val shopUrl: Rep[String] = column[String]("SHOP_URL", O.Length(128, varying = true))
+  }
+
+  /** Collection-like TableQuery object for table Shops */
+  lazy val Shops = new TableQuery(tag => new Shops(tag))
 
   /** Entity class storing rows of table Users
     *

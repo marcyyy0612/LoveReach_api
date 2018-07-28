@@ -106,6 +106,53 @@
 	</tablespace_set>
 	<diagram_walkers>
 		<table>
+			<physical_name>SHOPS</physical_name>
+			<logical_name>5時まで遊べるお店</logical_name>
+			<description></description>
+			<height>75</height>
+			<width>120</width>
+			<font_name>.AppleSystemUIFont</font_name>
+			<font_size>9</font_size>
+			<x>535</x>
+			<y>483</y>
+			<color>
+				<r>128</r>
+				<g>128</g>
+				<b>192</b>
+			</color>
+			<connections>
+			</connections>
+			<columns>
+				<normal_column>
+					<physical_name>shop_id</physical_name>
+					<logical_name>ショップID</logical_name>
+					<type>integer</type>
+					<not_null>true</not_null>
+					<primary_key>true</primary_key>
+					<auto_increment>true</auto_increment>
+				</normal_column>
+				<normal_column>
+					<physical_name>shop_name</physical_name>
+					<logical_name>ショップ名</logical_name>
+					<type>character(n)</type>
+					<length>30</length>
+					<not_null>true</not_null>
+				</normal_column>
+				<normal_column>
+					<physical_name>shop_url</physical_name>
+					<type>varchar(n)</type>
+					<length>128</length>
+					<not_null>true</not_null>
+				</normal_column>
+			</columns>
+			<indexes>
+			</indexes>
+			<compound_unique_key_list>
+			</compound_unique_key_list>
+			<table_properties>
+			</table_properties>
+		</table>
+		<table>
 			<physical_name>login_statuses</physical_name>
 			<logical_name>ログイン状態</logical_name>
 			<description></description>

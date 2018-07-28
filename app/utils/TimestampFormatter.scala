@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat
 import play.api.libs.json.{ Format, JsString, JsSuccess, JsValue }
 
 object TimestampFormatter {
+
   implicit object timestampFormat extends Format[Timestamp] {
     val format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
@@ -16,4 +17,5 @@ object TimestampFormatter {
 
     def writes(ts: Timestamp) = JsString(format.format(ts))
   }
+
 }

@@ -11,7 +11,7 @@ import models.Tables._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import play.api.libs.json._
-import play.api.mvc.{ AbstractController, Action, ControllerComponents }
+import play.api.mvc.{ AbstractController, Action, AnyContent, ControllerComponents }
 import play.filters.csrf._
 import slick.jdbc.MySQLProfile
 import slick.jdbc.MySQLProfile.api._
@@ -27,6 +27,7 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
 
   def signup: Action[JsValue] = addToken {
     Action.async(parse.json) { implicit rs =>
+      val uuid: String = randomUUID().toString
       rs.body
         .validate[SignUpForm]
         .map { form =>
@@ -43,7 +44,7 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
             form.profileImage
           )
           db.run(Users += user).map { _ =>
-            Ok(Json.obj("result" -> "success"))
+            Ok(Json.obj("result" -> "success")).withSession("UUID" -> uuid)
           }
         }
         .recoverTotal { e =>
@@ -69,11 +70,10 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
           userIdOpt = users.flatMap(_.userId)
           registedPasswordOpt = users.map(_.password)
           isValidPassword = registedPasswordOpt.exists(p => utils.Secure.authenticate(form.password, p))
-          cacheResult2 <- cache.set("uuid", uuid) if isValidPassword
-          cacheResult1 <- userIdOpt match {
-            case Some(userId) => cache.set("userId", userId)
+          cacheResult <- userIdOpt match {
+            case Some(userId) => cache.set(uuid, userId)
             case _            => Future.successful(Done)
-          }
+          } if isValidPassword
         } yield {
           Ok(Json.obj("result" -> "success")).withSession("UUID" -> uuid)
         }
@@ -84,6 +84,32 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
       }
     }
   }
+
+  def signout: Action[AnyContent] =
+    Action.async { implicit rs =>
+      val uuid = rs.session.get("UUID")
+      uuid match {
+        case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
+        case _ => {
+          cache.remove(uuid.getOrElse("None"))
+          Future.successful(Ok(Json.obj("result" -> "success")).withNewSession)
+        }
+      }
+    }
+
+  def isAlreadySingin: Action[AnyContent] =
+    Action.async { implicit rs =>
+      val uuid = rs.session.get("UUID")
+      uuid match {
+        case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")).withNewSession)
+        case _ => {
+          cache.get[Int](uuid.getOrElse("None")).flatMap {
+            case Some(id) => Future.successful(Ok(Json.obj("result" -> "success")))
+            case _        => Future.successful(Unauthorized(Json.obj("result" -> "failure")).withNewSession)
+          }
+        }
+      }
+    }
 }
 
 object SignUpJsonFormatter {

@@ -31,11 +31,11 @@ class MatchingController @Inject()(cache: AsyncCacheApi,
   // マッチング処理
   def insertMatchRelation: Action[JsValue] =
     Action.async(parse.json) { implicit rs =>
-      val signinUserId = cache.get[Int]("userId")
-
-      rs.session.get("UUID") match {
-        case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+      val uuid = rs.session.get("UUID")
+      uuid match {
+        case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
         case _ => {
+          val signinUserId = cache.get[Int](uuid.getOrElse("None"))
           signinUserId.flatMap(userId => {
             rs.body
               .validate[MatchingForm]

@@ -29,11 +29,11 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
   // matchしているユーザへメッセージ送信
   def insertMessages: Action[JsValue] =
     Action.async(parse.json) { implicit rs =>
-      val signinUserId = cache.get[Int]("userId")
-
-      rs.session.get("UUID") match {
-        case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+      val uuid = rs.session.get("UUID")
+      uuid match {
+        case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
         case _ => {
+          val signinUserId = cache.get[Int](uuid.getOrElse("None"))
           signinUserId.flatMap(id => {
             rs.body
               .validate[MessageForm]
@@ -55,8 +55,9 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
   // matchしているユーザとのメッセージを取得
   def selectMessages(partnerId: Int): Action[AnyContent] =
     Action.async { implicit rs =>
-      rs.session.get("UUID") match {
-        case None => Future.successful(Ok(Json.obj("result" -> "failure")))
+      val uuid = rs.session.get("UUID")
+      uuid match {
+        case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
         case _ => {
           def messagesDBIO(userId: Int) =
             Messages
@@ -70,7 +71,7 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
 
           def resultDBIO =
             for {
-              userIdOpt <- DBIO.from(cache.get[Int]("userId"))
+              userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
               userId <- userIdOpt match {
                 case Some(userId) => DBIO.successful(userId)
                 case _            => DBIO.failed(new Exception("cache not found"))
@@ -85,6 +86,7 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
       }
     }
 }
+
 object MessageJsonFormatter {
 
   implicit val messageRowWritesFormat: Writes[Tables.MessagesRow] = (message: MessagesRow) => {
