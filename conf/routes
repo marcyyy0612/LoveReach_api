@@ -22,6 +22,7 @@ POST        /api/signin                           controllers.ApplicationControl
 POST        /api/signup                           controllers.ApplicationController.signup
 GET         /api/signout                          controllers.ApplicationController.signout
 GET         /api/isAlreadySignin                  controllers.ApplicationController.isAlreadySingin
+POST        /api/location                         controllers.ApplicationController.insertLocation
 
 # メッセージ処理
 POST        /api/users/insertMessages             controllers.MessagesController.insertMessages
