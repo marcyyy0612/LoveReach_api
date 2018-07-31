@@ -95,10 +95,16 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
             rs.body.validate[LocationForm].map(form => {
                 val uuid = rs.session.get("UUID")
 
-                def locationDBIO(id: Int) = {
-                    val location = UsersLocationRow(id, form.longitude, form.latitude)
-                    println(location)
-                    UsersLocation.map(location => (location.userId, location.latitude, location.longitude)) += (id, form.latitude, form.longitude)
+                def usersLocationDBIO(id: Int) = {
+                    UsersLocation.filter(_.userId === id).map(_.userId).result.headOption
+                }
+
+                def insertLocationDBIO(id: Int) = {
+                    val location = UsersLocationRow(id, form.latitude, form.longitude)
+                    UsersLocation += location
+                }
+                def updateLocationDBIO(id: Int) = {
+                    UsersLocation.map(location => (location.userId, location.latitude, location.longitude)).update(id, form.latitude, form.longitude)
                 }
 
                 uuid match {
@@ -112,7 +118,10 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
                                         DBIO.successful(userId)
                                     case _ => DBIO.failed(new Exception("cache not found"))
                                 }
-                                result <- locationDBIO(userId)
+                                result <- usersLocationDBIO(userId).flatMap {
+                                    case Some(maybeInt) => updateLocationDBIO(userId)
+                                    case _ => insertLocationDBIO(userId)
+                                }
                             } yield {
                                 Ok(Json.obj("result" -> "success"))
                             }
@@ -133,6 +142,7 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
             val uuid = rs.session.get("UUID")
 
             def deleteLoginDBIO(id: Int) = LoginStatuses.filter(_.userId === id).delete
+            def deleteLocationDBIO(id: Int) = UsersLocation.filter(_.userId === id).delete
 
             uuid match {
                 case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
@@ -142,11 +152,12 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
                             userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
                             userId <- userIdOpt match {
                                 case Some(userId) =>
-                                    db.run(deleteLoginDBIO(userId))
                                     cache.remove(uuid.getOrElse("None"))
                                     DBIO.successful(userId)
                                 case _ => DBIO.failed(new Exception("cache not found"))
                             }
+                            resultDeleteLogin <- deleteLoginDBIO(userId)
+                            resultDeleteLocation <- deleteLocationDBIO(userId)
                         } yield Ok(Json.obj("result" -> "success")).withNewSession
 
                     db.run(resultDBIO).recover {
