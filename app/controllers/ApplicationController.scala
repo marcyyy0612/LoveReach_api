@@ -4,9 +4,9 @@ import java.sql.{Date, Timestamp}
 import java.util.UUID._
 
 import akka.Done
+import controllers.LocationJsonFormatter.LocationForm
 import controllers.SignInJsonFormatter.SignInForm
 import controllers.SignUpJsonFormatter.SignUpForm
-import controllers.LocationJsonFormatter.LocationForm
 import javax.inject.Inject
 import models.Tables._
 import play.api.cache.AsyncCacheApi
@@ -103,8 +103,11 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
                     val location = UsersLocationRow(id, form.latitude, form.longitude)
                     UsersLocation += location
                 }
+
                 def updateLocationDBIO(id: Int) = {
-                    UsersLocation.map(location => (location.userId, location.latitude, location.longitude)).update(id, form.latitude, form.longitude)
+                    UsersLocation.filter(_.userId === id)
+                        .map(location => (location.userId, location.latitude, location.longitude))
+                        .update(id, form.latitude, form.longitude)
                 }
 
                 uuid match {
@@ -142,6 +145,7 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
             val uuid = rs.session.get("UUID")
 
             def deleteLoginDBIO(id: Int) = LoginStatuses.filter(_.userId === id).delete
+
             def deleteLocationDBIO(id: Int) = UsersLocation.filter(_.userId === id).delete
 
             uuid match {
