@@ -1,6 +1,6 @@
 package controllers
 
-import java.sql.{Date, Timestamp}
+import java.sql.Timestamp
 
 import controllers.MatchingJsonFormatter._
 import javax.inject.Inject

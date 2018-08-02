@@ -144,6 +144,20 @@
 					<length>128</length>
 					<not_null>true</not_null>
 				</normal_column>
+				<normal_column>
+					<physical_name>shop_lat</physical_name>
+					<type>decimal(p,s)</type>
+					<length>11</length>
+					<decimal>7</decimal>
+					<not_null>true</not_null>
+				</normal_column>
+				<normal_column>
+					<physical_name>shop_lng</physical_name>
+					<type>decimal(p,s)</type>
+					<length>11</length>
+					<decimal>7</decimal>
+					<not_null>true</not_null>
+				</normal_column>
 			</columns>
 			<indexes>
 			</indexes>
@@ -484,16 +498,16 @@
 					<physical_name>latitude</physical_name>
 					<logical_name>緯度</logical_name>
 					<type>decimal(p,s)</type>
-					<length>7</length>
-					<decimal>4</decimal>
+					<length>11</length>
+					<decimal>7</decimal>
 					<not_null>true</not_null>
 				</normal_column>
 				<normal_column>
 					<physical_name>longitude</physical_name>
 					<logical_name>経度</logical_name>
 					<type>decimal(p,s)</type>
-					<length>7</length>
-					<decimal>4</decimal>
+					<length>11</length>
+					<decimal>7</decimal>
 					<not_null>true</not_null>
 				</normal_column>
 			</columns>
