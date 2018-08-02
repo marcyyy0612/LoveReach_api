@@ -63,16 +63,10 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                         Users.filter(_.userId === id).map(_.sex).result.headOption
 
                     def usersDBIO(id: Int) =
-                        UsersLocation.filter(_.userId =!= id).flatMap(location =>
-                            Users.filter(user =>
-                                user.userId === user.userId)
-//                                .map(u => (u, location.longitude, location.latitude))
-                        ).result
+                        Users.filter(_.userId =!= id).result
 
                     def selectedUsersDBIO(id: Int) =
                         MatchRelations.filter(_.userId === id).result
-
-                    db.run(locationService.resultDBIO(3))
 
                     val resultDBIO = for {
                         userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
@@ -80,6 +74,8 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                             case Some(userId) => DBIO.successful(userId)
                             case _ => DBIO.failed(new Exception("cache not found"))
                         }
+                        distance <- locationService.resultDBIO(userId)
+                        nearUsers = distance.filter(_.distance < 5) //ログインユーザの中で自分との距離が5km 未満のユーザのみ
                         users <- usersDBIO(userId) //自分以外のユーザ
                         selectedUsers <- selectedUsersDBIO(userId) //like, nopeの選択をしたユーザ
                         nonSelectedUsers = users.filterNot(user => { //未選択のユーザ
@@ -92,7 +88,14 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                             case Diver => nonSelectedUsers
                             case _ => Nil
                         }
-                    } yield Ok(Json.obj("USERS" -> resultUsers))
+                        responseUsers = nearUsers.flatMap(user => {
+                            resultUsers.filter(_.userId.get == user.userId)
+                        })
+                    } yield {
+                        nearUsers.foreach(println(_))
+                        resultUsers.foreach(println(_))
+                        Ok(Json.obj("USERS" -> responseUsers))
+                    }
 
                     db.run(resultDBIO).recover {
                         case e =>

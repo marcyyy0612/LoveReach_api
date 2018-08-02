@@ -11,6 +11,7 @@ import scala.math._
 
 class LocationService @Inject()(val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
     extends HasDatabaseConfigProvider[MySQLProfile] {
+    case class UsersDistance(userId: Int, distance: Double)
 
     def calcDistance(lat1: BigDecimal, lng1: BigDecimal, lat2: BigDecimal, lng2: BigDecimal): Double = {
         val r = 6378.137
@@ -20,7 +21,7 @@ class LocationService @Inject()(val dbConfigProvider: DatabaseConfigProvider)(im
         val pairLat = lat2.toDouble * Pi / 180
         val pairLng = lng2.toDouble * Pi / 180
 
-        println(r * acos(sin(myLat) * sin(pairLat) + cos(myLat) * cos(pairLat) * cos(pairLng - myLng)))
+//        println(r * acos(sin(myLat) * sin(pairLat) + cos(myLat) * cos(pairLat) * cos(pairLng - myLng)))
         r * acos(sin(myLat) * sin(pairLat) + cos(myLat) * cos(pairLat) * cos(pairLng - myLng))
     }
 
@@ -35,9 +36,9 @@ class LocationService @Inject()(val dbConfigProvider: DatabaseConfigProvider)(im
             myLocation <- myLocationDBIO(id)
             pairLocation <- pairLocationDBIO(id)
         } yield {
-            pairLocation.foreach(pair => {
+            pairLocation.flatMap(pair => {
                 myLocation.map(my => {
-                    calcDistance(my.latitude, my.longitude, pair.latitude, pair.longitude)
+                    UsersDistance(pair.userId, calcDistance(my.latitude, my.longitude, pair.latitude, pair.longitude))
                 })
             })
         }
