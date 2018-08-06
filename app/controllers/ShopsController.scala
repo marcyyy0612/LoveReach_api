@@ -15,6 +15,8 @@ import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
 
+case class NearShops(shopId: Int, shopName: String, shopUrl: String, shopDis: Double)
+
 class ShopsController @Inject()(cache: AsyncCacheApi,
                                 checkToken: CSRFCheck,
                                 val dbConfigProvider: DatabaseConfigProvider,
@@ -23,7 +25,6 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
     extends AbstractController(cc)
         with HasDatabaseConfigProvider[MySQLProfile] {
 
-    case class NearShops(shopId: Int, shopName: String, shopUrl: String, shopDis: Double)
 
     // 登録している店のリスト取得
     def showShopsList: Action[AnyContent] =
@@ -52,25 +53,24 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
                         } yield {
                             val shopsList =
                                 shops.flatMap(shop => {
-                                user.map(user => {
-                                    NearShops(
-                                        shop.shopId.get,
-                                        shop.shopName,
-                                        shop.shopUrl,
-                                        locationService.calcDistance(
-                                            user.latitude,
-                                            user.longitude,
-                                            shop.shopLat,
-                                            shop.shopLng
+                                    user.map(user => {
+                                        NearShops(
+                                            shop.shopId.get,
+                                            shop.shopName,
+                                            shop.shopUrl,
+                                            locationService.calcDistance(
+                                                user.latitude,
+                                                user.longitude,
+                                                shop.shopLat,
+                                                shop.shopLng
+                                            )
                                         )
-                                    )
+                                    })
                                 })
-                            })
                             val nearShopsList =
                                 shopsList.filter(_.shopDis < 5) // 現在地から5km未満の店を返す
-                            Ok(Json.toJson("SHOPS" -> nearShopsList))
+                            Ok(Json.obj("SHOPS" -> nearShopsList))
                         }
-
                     db.run(resultDBIO)
                         .recover {
                             case e =>
@@ -83,8 +83,7 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
 }
 
 object ShopsJsonFormatter {
-
-    implicit val shopsRowWritesFormat: Writes[Tables.ShopsRow] = (shop: ShopsRow) => {
-        Json.obj("SHOP_ID" -> shop.shopId, "SHOP_NAME" -> shop.shopName, "SHOP_URL" -> shop.shopUrl)
+    implicit val shopsRowWritesFormat: Writes[NearShops] = (shop: NearShops) => {
+        Json.obj("SHOP_ID" -> shop.shopId, "SHOP_NAME" -> shop.shopName, "SHOP_URL" -> shop.shopUrl, "SHOP_DIS" -> shop.shopDis)
     }
 }
