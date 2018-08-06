@@ -62,7 +62,7 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
             def formJsResult: JsResult[SignInForm] = rs.body.validate[SignInForm]
 
             def usersDBIO(form: SignInForm): DBIO[Option[UsersRow]] =
-                Users.filter(_.mailAddress === form.mailAddress).result.headOption // 別のファイルに切り出せそうですね
+                Users.filter(_.mailAddress === form.mailAddress.bind).result.headOption // 別のファイルに切り出せそうですね
 
             def loginDBIO(id: Int) = {
                 val datetime = new Timestamp(System.currentTimeMillis())
@@ -213,3 +213,4 @@ object LocationJsonFormatter {
 
     implicit val LocationFormReads: Reads[LocationForm] = Json.reads[LocationForm]
 }
+

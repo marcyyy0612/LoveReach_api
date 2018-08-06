@@ -20,7 +20,6 @@ libraryDependencies ++= Seq(
     "org.springframework.security" % "spring-security-web" % "4.1.3.RELEASE"
 )
 
-
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.example.controllers._"
 

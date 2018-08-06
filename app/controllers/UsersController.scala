@@ -159,12 +159,55 @@ class UsersController @Inject()(cache: AsyncCacheApi,
         }
 
     // 退会処理
-    //    def remove(userId: Int): Action[AnyContent] = Action.async { implicit rs =>
-    //        // ユーザを削除
-    //        db.run(Users.filter(t => t.userId === userId.bind).delete).map { _ =>
-    //            Ok(Json.obj("result" -> "success"))
-    //        }
-    //    }
+    def deleteAccount: Action[AnyContent] =
+        Action.async { implicit rs =>
+
+            val uuid = rs.session.get("UUID")
+            uuid match {
+                case None => Future.successful(Unauthorized(Json.obj("result" -> "Unauthorized")))
+                case _ => {
+                    def usersDBIO(id: Int): DBIO[Option[UsersRow]] =
+                        Users.filter(_.userId === id.bind).result.headOption
+
+                    def deleteUserDBIO(id: Int) =
+                        Users.filter(_.userId === id.bind).delete
+
+                    def deleteMessagesDBIO(id: Int) =
+                        Messages.filter(_.userId === id.bind).delete
+
+                    def deleteLocationDBIO(id: Int) =
+                        UsersLocation.filter(_.userId === id.bind).delete
+
+                    def deleteMatchingDBIO(id: Int) =
+                        MatchRelations.filter(_.userId === id.bind).delete
+
+                    def deleteLoginDBIO(id: Int) =
+                        LoginStatuses.filter(_.userId === id.bind).delete
+
+                    def resultDBIO = for {
+                        userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
+                        userId <- userIdOpt match {
+                            case Some(userId) =>
+                                cache.remove(uuid.getOrElse("None"))
+                                DBIO.successful(userId)
+                            case _ => DBIO.failed(new Exception("cache not found"))
+                        }
+                        deleteLogin <- deleteLoginDBIO(userId)
+                        deleteMatching <- deleteMatchingDBIO(userId)
+                        deleteLocation <- deleteLocationDBIO(userId)
+                        deleteMessages <- deleteMessagesDBIO(userId)
+                        deleteUser <- deleteUserDBIO(userId)
+                    } yield {
+                        Ok(Json.obj("result" -> "success")).withNewSession
+                    }
+
+                    db.run(resultDBIO).recover {
+                        case e =>
+                            BadRequest(Json.obj("result" -> "failure"))
+                    }
+                }
+            }
+        }
 
     // 相互likeしている(matchしている)ユーザのみ表示
     def listMatchingUsers: Action[AnyContent] =
@@ -233,4 +276,10 @@ object UsersJsonFormatter {
     case class UserImgForm(profileImage: String)
 
     implicit val userImgFormReads: Reads[UserImgForm] = Json.reads[UserImgForm]
+
+    case class DeleteAccountForm(password: String)
+
+    implicit val deleteAccountFromReads: Reads[DeleteAccountForm] = Json.reads[DeleteAccountForm]
 }
+
+
