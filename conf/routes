@@ -13,7 +13,7 @@ GET         /assets/*file                         controllers.Assets.versioned(p
 GET         /api/users/list                       controllers.UsersController.list
 POST        /api/users/update                     controllers.UsersController.update
 POST        /api/users/updateImg                  controllers.UsersController.updateImg
-#POST        /api/users/remove          controllers.UsersController.remove
+GET         /api/users/delete                     controllers.UsersController.deleteAccount
 GET         /api/users/like                       controllers.UsersController.listMatchingUsers
 GET         /api/users/me                         controllers.UsersController.selectSigninUser
 
@@ -22,6 +22,7 @@ POST        /api/signin                           controllers.ApplicationControl
 POST        /api/signup                           controllers.ApplicationController.signup
 GET         /api/signout                          controllers.ApplicationController.signout
 GET         /api/isAlreadySignin                  controllers.ApplicationController.isAlreadySingin
+POST        /api/location                         controllers.ApplicationController.insertLocation
 
 # メッセージ処理
 POST        /api/users/insertMessages             controllers.MessagesController.insertMessages
