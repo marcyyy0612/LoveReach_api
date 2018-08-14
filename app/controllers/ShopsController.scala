@@ -2,7 +2,6 @@ package controllers
 
 import controllers.ShopsJsonFormatter._
 import javax.inject.Inject
-import models.Tables
 import models.Tables._
 import play.api.cache._
 import play.api.db.slick._
@@ -25,14 +24,13 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
     extends AbstractController(cc)
         with HasDatabaseConfigProvider[MySQLProfile] {
 
-
     // 登録している店のリスト取得
     def showShopsList: Action[AnyContent] =
         Action.async { implicit rs =>
             val uuid = rs.session.get("UUID")
             uuid match {
                 case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                case _ => {
+                case _ =>
                     def myLocationDBIO(userId: Int) =
                         UsersLocation.filter(_.userId === userId.bind).result.headOption
 
@@ -58,12 +56,7 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
                                             shop.shopId.get,
                                             shop.shopName,
                                             shop.shopUrl,
-                                            locationService.calcDistance(
-                                                user.latitude,
-                                                user.longitude,
-                                                shop.shopLat,
-                                                shop.shopLng
-                                            )
+                                            locationService.calcDistance(user.latitude, user.longitude, shop.shopLat, shop.shopLng)
                                         )
                                     })
                                 })
@@ -77,7 +70,6 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
                             case e =>
                                 BadRequest(Json.obj("result" -> "failure"))
                         }
-                }
             }
         }
 
@@ -85,6 +77,11 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
 
 object ShopsJsonFormatter {
     implicit val shopsRowWritesFormat: Writes[NearShops] = (shop: NearShops) => {
-        Json.obj("SHOP_ID" -> shop.shopId, "SHOP_NAME" -> shop.shopName, "SHOP_URL" -> shop.shopUrl, "SHOP_DIS" -> shop.shopDis)
+        Json.obj(
+            "SHOP_ID" -> shop.shopId,
+            "SHOP_NAME" -> shop.shopName,
+            "SHOP_URL" -> shop.shopUrl,
+            "SHOP_DIS" -> shop.shopDis
+        )
     }
 }

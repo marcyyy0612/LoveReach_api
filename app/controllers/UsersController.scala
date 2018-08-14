@@ -9,7 +9,7 @@ import play.api.db.slick._
 import play.api.libs.json._
 import play.api.mvc._
 import play.filters.csrf._
-import services.{LocationService, MatchingService}
+import services.LocationService
 import slick.jdbc.MySQLProfile
 import slick.jdbc.MySQLProfile.api._
 
@@ -17,7 +17,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class UsersController @Inject()(cache: AsyncCacheApi,
                                 checkToken: CSRFCheck,
-                                matchingService: MatchingService,
                                 locationService: LocationService,
                                 val dbConfigProvider: DatabaseConfigProvider,
                                 cc: ControllerComponents)(implicit ec: ExecutionContext)
@@ -87,12 +86,11 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                             case Diver => nonSelectedUsers
                             case _ => Nil
                         }
+
                         responseUsers = nearUsers.flatMap(user => {
-                            resultUsers.filter(_.userId.get == user.userId)
+                            resultUsers.filter(_.userId.getOrElse("None") == user.userId)
                         })
-                    } yield {
-                        Ok(Json.obj("USERS" -> responseUsers))
-                    }
+                    } yield Ok(Json.obj("USERS" -> responseUsers))
 
                     db.run(resultDBIO).recover {
                         case e =>

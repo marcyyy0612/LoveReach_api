@@ -29,23 +29,25 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
     def signup: Action[JsValue] = addToken {
         Action.async(parse.json) { implicit rs =>
             val uuid: String = randomUUID().toString
-            rs.body.validate[SignUpForm].map { form =>
-                // OKの場合はユーザを登録
-                val user = UsersRow(
-                    form.userId,
-                    form.userName,
-                    form.sex,
-                    form.birthday,
-                    form.profile,
-                    form.createdAt,
-                    form.mailAddress,
-                    utils.Secure.createHash(form.password),
-                    form.profileImage
-                )
-                db.run(Users += user).map { _ =>
-                    Ok(Json.obj("result" -> "success")).withSession("UUID" -> uuid)
+            rs.body
+                .validate[SignUpForm]
+                .map { form =>
+                    // OKの場合はユーザを登録
+                    val user = UsersRow(
+                        form.userId,
+                        form.userName,
+                        form.sex,
+                        form.birthday,
+                        form.profile,
+                        form.createdAt,
+                        form.mailAddress,
+                        utils.Secure.createHash(form.password),
+                        form.profileImage
+                    )
+                    db.run(Users += user).map { _ =>
+                        Ok(Json.obj("result" -> "success")).withSession("UUID" -> uuid)
+                    }
                 }
-            }
                 .recoverTotal { e =>
                     // NGの場合はバリデーションエラーを返す
                     Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
@@ -90,53 +92,54 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
 
     def insertLocation[JsValue] =
         Action.async(parse.json) { implicit rs =>
-            rs.body.validate[LocationForm].map(form => {
-                val uuid = rs.session.get("UUID")
+            rs.body
+                .validate[LocationForm]
+                .map(form => {
+                    val uuid = rs.session.get("UUID")
 
-                def usersLocationDBIO(id: Int) = {
-                    UsersLocation.filter(_.userId === id).map(_.userId).result.headOption
-                }
+                    def usersLocationDBIO(id: Int) =
+                        UsersLocation.filter(_.userId === id).map(_.userId).result.headOption
 
-                def insertLocationDBIO(id: Int) = {
-                    val location = UsersLocationRow(id, form.latitude, form.longitude)
-                    UsersLocation += location
-                }
+                    def insertLocationDBIO(id: Int) = {
+                        val location = UsersLocationRow(id, form.latitude, form.longitude)
+                        UsersLocation += location
+                    }
 
-                def updateLocationDBIO(id: Int) = {
-                    UsersLocation.filter(_.userId === id)
-                        .map(location => (location.userId, location.latitude, location.longitude))
-                        .update(id, form.latitude, form.longitude)
-                }
+                    def updateLocationDBIO(id: Int) =
+                        UsersLocation
+                            .filter(_.userId === id)
+                            .map(location => (location.userId, location.latitude, location.longitude))
+                            .update(id, form.latitude, form.longitude)
 
-                uuid match {
-                    case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                    case _ =>
-                        def resultDBIO =
-                            for {
-                                userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
-                                userId <- userIdOpt match {
-                                    case Some(userId) =>
-                                        DBIO.successful(userId)
-                                    case _ => DBIO.failed(new Exception("cache not found"))
+                    uuid match {
+                        case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
+                        case _ =>
+                            def resultDBIO =
+                                for {
+                                    userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
+                                    userId <- userIdOpt match {
+                                        case Some(userId) =>
+                                            DBIO.successful(userId)
+                                        case _ => DBIO.failed(new Exception("cache not found"))
+                                    }
+                                    result <- usersLocationDBIO(userId).flatMap {
+                                        case Some(maybeInt) => updateLocationDBIO(userId)
+                                        case _ => insertLocationDBIO(userId)
+                                    }
+                                } yield {
+                                    Ok(Json.obj("result" -> "success"))
                                 }
-                                result <- usersLocationDBIO(userId).flatMap {
-                                    case Some(maybeInt) => updateLocationDBIO(userId)
-                                    case _ => insertLocationDBIO(userId)
-                                }
-                            } yield {
-                                Ok(Json.obj("result" -> "success"))
+
+                            db.run(resultDBIO).recover {
+                                case e => BadRequest(Json.obj("result" -> "failure"))
                             }
-
-                        db.run(resultDBIO).recover {
-                            case e => BadRequest(Json.obj("result" -> "failure"))
-                        }
+                    }
+                })
+                .recoverTotal { e =>
+                    // NGの場合はバリデーションエラーを返す
+                    Future.successful(BadRequest(Json.obj("validate result" -> "failure", "error" -> JsError.toJson(e))))
                 }
-            }).recoverTotal { e =>
-                // NGの場合はバリデーションエラーを返す
-                Future.successful(BadRequest(Json.obj("validate result" -> "failure", "error" -> JsError.toJson(e))))
-            }
         }
-
 
     def signout: Action[AnyContent] =
         Action.async { implicit rs =>
@@ -211,4 +214,3 @@ object LocationJsonFormatter {
 
     implicit val LocationFormReads: Reads[LocationForm] = Json.reads[LocationForm]
 }
-

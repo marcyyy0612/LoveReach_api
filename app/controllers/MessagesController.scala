@@ -11,7 +11,6 @@ import play.api.db.slick._
 import play.api.libs.json._
 import play.api.mvc._
 import play.filters.csrf._
-import services.MatchingService
 import slick.jdbc.MySQLProfile
 import slick.jdbc.MySQLProfile.api._
 import utils.TimestampFormatter._
@@ -20,7 +19,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class MessagesController @Inject()(cache: AsyncCacheApi,
                                    checkToken: CSRFCheck,
-                                   matchingService: MatchingService,
                                    val dbConfigProvider: DatabaseConfigProvider,
                                    cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends AbstractController(cc)
@@ -29,32 +27,36 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
     // matchしているユーザへメッセージ送信
     def insertMessages(): Action[JsValue] =
         Action.async(parse.json) { implicit rs =>
-            rs.body.validate[MessageForm].map { form =>
-                val uuid = rs.session.get("UUID")
-                uuid match {
-                    case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                    case _ =>
-                        def messagesDBIO(message: MessagesRow) =
-                            Messages += message
+            rs.body
+                .validate[MessageForm]
+                .map { form =>
+                    val uuid = rs.session.get("UUID")
+                    uuid match {
+                        case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
+                        case _ =>
+                            def messagesDBIO(message: MessagesRow) =
+                                Messages += message
 
-                        def resultDBIO = for {
-                            userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
-                            userId <- userIdOpt match {
-                                case Some(userId) => DBIO.successful(userId)
-                                case _ => DBIO.failed(new Exception("cache not found"))
+                            def resultDBIO =
+                                for {
+                                    userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
+                                    userId <- userIdOpt match {
+                                        case Some(userId) => DBIO.successful(userId)
+                                        case _ => DBIO.failed(new Exception("cache not found"))
+                                    }
+                                    message = MessagesRow(userId, form.partnerId, form.message, form.sendDatetime)
+                                    messageResult <- messagesDBIO(message)
+                                } yield Ok(Json.obj("result" -> "success"))
+
+                            db.run(resultDBIO).recover {
+                                case e => BadRequest(Json.obj("result" -> "failure"))
                             }
-                            message = MessagesRow(userId, form.partnerId, form.message, form.sendDatetime)
-                            messageResult <- messagesDBIO(message)
-                        } yield Ok(Json.obj("result" -> "success"))
-
-                        db.run(resultDBIO).recover {
-                            case e => BadRequest(Json.obj("result" -> "failure"))
-                        }
+                    }
                 }
-            }.recoverTotal { e =>
-                // NGの場合はバリデーションエラーを返す
-                Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
-            }
+                .recoverTotal { e =>
+                    // NGの場合はバリデーションエラーを返す
+                    Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
+                }
         }
 
     // matchしているユーザとのメッセージを取得

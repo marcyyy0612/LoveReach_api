@@ -11,3 +11,4 @@ target
 .ensime_cache
 .envrc
 cookiejar
+.DS_Store
