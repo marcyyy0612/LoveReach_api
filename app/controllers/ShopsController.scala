@@ -71,6 +71,7 @@ class ShopsController @Inject()(cache: AsyncCacheApi,
                                 shopsList.filter(_.shopDis < 5) // 現在地から5km未満の店を返す
                             Ok(Json.obj("SHOPS" -> nearShopsList))
                         }
+
                     db.run(resultDBIO)
                         .recover {
                             case e =>

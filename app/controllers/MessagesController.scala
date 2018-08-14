@@ -27,28 +27,33 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
         with HasDatabaseConfigProvider[MySQLProfile] {
 
     // matchしているユーザへメッセージ送信
-    def insertMessages: Action[JsValue] =
+    def insertMessages(): Action[JsValue] =
         Action.async(parse.json) { implicit rs =>
-            val uuid = rs.session.get("UUID")
-            uuid match {
-                case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                case _ => {
-                    val signinUserId = cache.get[Int](uuid.getOrElse("None"))
-                    signinUserId.flatMap(id => {
-                        rs.body
-                            .validate[MessageForm]
-                            .map { form =>
-                                val message = MessagesRow(id.get, form.partnerId, form.message, form.sendDatetime)
-                                db.run(Messages += message).map { _ =>
-                                    Ok(Json.obj("result" -> "success"))
-                                }
+            rs.body.validate[MessageForm].map { form =>
+                val uuid = rs.session.get("UUID")
+                uuid match {
+                    case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
+                    case _ =>
+                        def messagesDBIO(message: MessagesRow) =
+                            Messages += message
+
+                        def resultDBIO = for {
+                            userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
+                            userId <- userIdOpt match {
+                                case Some(userId) => DBIO.successful(userId)
+                                case _ => DBIO.failed(new Exception("cache not found"))
                             }
-                            .recoverTotal { e =>
-                                // NGの場合はバリデーションエラーを返す
-                                Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
-                            }
-                    })
+                            message = MessagesRow(userId, form.partnerId, form.message, form.sendDatetime)
+                            messageResult <- messagesDBIO(message)
+                        } yield Ok(Json.obj("result" -> "success"))
+
+                        db.run(resultDBIO).recover {
+                            case e => BadRequest(Json.obj("result" -> "failure"))
+                        }
                 }
+            }.recoverTotal { e =>
+                // NGの場合はバリデーションエラーを返す
+                Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
             }
         }
 
@@ -58,7 +63,7 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
             val uuid = rs.session.get("UUID")
             uuid match {
                 case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                case _ => {
+                case _ =>
                     def messagesDBIO(userId: Int) =
                         Messages
                             .filter(messages => {
@@ -83,7 +88,6 @@ class MessagesController @Inject()(cache: AsyncCacheApi,
                     db.run(resultDBIO).recover {
                         case e => BadRequest(Json.obj("result" -> "failure"))
                     }
-                }
             }
         }
 }

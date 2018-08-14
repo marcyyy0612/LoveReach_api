@@ -33,7 +33,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
             val uuid = rs.session.get("UUID")
             uuid match {
                 case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                case _ => {
+                case _ =>
                     def userDBIO(userId: Int) = Users.filter(_.userId === userId.bind).result
 
                     def resultDBIO =
@@ -49,7 +49,6 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                     db.run(resultDBIO).recover {
                         case e => BadRequest(Json.obj("result" -> "failure"))
                     }
-                }
             }
         }
 
@@ -58,7 +57,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
             val uuid = rs.session.get("UUID")
             uuid match {
                 case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                case _ => {
+                case _ =>
                     def myInfoDBIO(id: Int) =
                         Users.filter(_.userId === id).map(_.sex).result.headOption
 
@@ -99,7 +98,6 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                         case e =>
                             BadRequest(Json.obj("result" -> "failure"))
                     }
-                }
             }
         }
 
@@ -109,17 +107,24 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                 val uuid = rs.session.get("UUID")
                 uuid match {
                     case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                    case _ => {
-                        val signinUserId = cache.get[Int](uuid.getOrElse("None"))
-                        signinUserId.flatMap(userId => {
-                            val userDBIO = Users.filter(_.userId === userId)
-                                .map(user => (user.userName, user.sex, user.profile))
-                                .update(form.userName, form.sex, form.profile)
-                            db.run(userDBIO).map { _ =>
-                                Ok(Json.obj("result" -> "success"))
+                    case _ =>
+                        def userDBIO(id: Int) = Users.filter(_.userId === id)
+                            .map(user => (user.userName, user.sex, user.profile))
+                            .update(form.userName, form.sex, form.profile)
+
+                        def resultDBIO = for {
+                            userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
+                            userId <- userIdOpt match {
+                                case Some(userId) => DBIO.successful(userId)
+                                case _ => DBIO.failed(new Exception("cache not found"))
                             }
-                        })
-                    }
+                            user <- userDBIO(userId)
+                        } yield Ok(Json.obj("result" -> "success"))
+
+                        db.run(resultDBIO).recover {
+                            case e =>
+                                BadRequest(Json.obj("result" -> "failure"))
+                        }
                 }
             }.recoverTotal { e =>
                 // NGの場合はバリデーションエラーを返す
@@ -128,34 +133,34 @@ class UsersController @Inject()(cache: AsyncCacheApi,
         }
 
     def updateImg: Action[JsValue] =
-        Action.async(parse.json) {
-            implicit rs =>
+        Action.async(parse.json) { implicit rs =>
+            rs.body.validate[UserImgForm].map { form =>
                 val uuid = rs.session.get("UUID")
                 uuid match {
                     case None => Future.successful(Unauthorized(Json.obj("result" -> "failure")))
-                    case _ => {
-                        val signinUserId = cache.get[Int](uuid.getOrElse("None"))
-                        signinUserId.flatMap(userId => {
-                            rs.body
-                                .validate[UserImgForm]
-                                .map {
-                                    form =>
-                                        val userDBIO = Users.filter(_.userId === userId)
-                                            .map(user => user.profileImage)
-                                            .update(form.profileImage)
-                                        db.run(userDBIO).map {
-                                            _ =>
-                                                Ok(Json.obj("result" -> "success"))
-                                        }
-                                }
-                                .recoverTotal {
-                                    e =>
-                                        // NGの場合はバリデーションエラーを返す
-                                        Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
-                                }
-                        })
-                    }
+                    case _ =>
+                        def userDBIO(id: Int) = Users.filter(_.userId === id)
+                            .map(user => user.profileImage)
+                            .update(form.profileImage)
+
+                        def resultDBIO = for {
+                            userIdOpt <- DBIO.from(cache.get[Int](uuid.getOrElse("None")))
+                            userId <- userIdOpt match {
+                                case Some(userId) => DBIO.successful(userId)
+                                case _ => DBIO.failed(new Exception("cache not found"))
+                            }
+                            user <- userDBIO(userId)
+                        } yield Ok(Json.obj("result" -> "success"))
+
+                        db.run(resultDBIO).recover {
+                            case e =>
+                                BadRequest(Json.obj("result" -> "failure"))
+                        }
                 }
+            }.recoverTotal { e =>
+                // NGの場合はバリデーションエラーを返す
+                Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
+            }
         }
 
     // 退会処理
@@ -218,7 +223,7 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                 val uuid = rs.session.get("UUID")
                 uuid match {
                     case None => Future.successful(Unauthorized(Json.obj("result" -> "no uuid")))
-                    case _ => {
+                    case _ =>
                         def listFollowerDBIO(id: Int) =
                             Users
                                 .filter(
@@ -250,7 +255,6 @@ class UsersController @Inject()(cache: AsyncCacheApi,
                             case e =>
                                 BadRequest(Json.obj("result" -> "failure"))
                         }
-                    }
                 }
         }
 

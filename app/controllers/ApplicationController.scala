@@ -29,25 +29,23 @@ class ApplicationController @Inject()(cache: AsyncCacheApi,
     def signup: Action[JsValue] = addToken {
         Action.async(parse.json) { implicit rs =>
             val uuid: String = randomUUID().toString
-            rs.body
-                .validate[SignUpForm]
-                .map { form =>
-                    // OKの場合はユーザを登録
-                    val user = UsersRow(
-                        form.userId,
-                        form.userName,
-                        form.sex,
-                        form.birthday,
-                        form.profile,
-                        form.createdAt,
-                        form.mailAddress,
-                        utils.Secure.createHash(form.password),
-                        form.profileImage
-                    )
-                    db.run(Users += user).map { _ =>
-                        Ok(Json.obj("result" -> "success")).withSession("UUID" -> uuid)
-                    }
+            rs.body.validate[SignUpForm].map { form =>
+                // OKの場合はユーザを登録
+                val user = UsersRow(
+                    form.userId,
+                    form.userName,
+                    form.sex,
+                    form.birthday,
+                    form.profile,
+                    form.createdAt,
+                    form.mailAddress,
+                    utils.Secure.createHash(form.password),
+                    form.profileImage
+                )
+                db.run(Users += user).map { _ =>
+                    Ok(Json.obj("result" -> "success")).withSession("UUID" -> uuid)
                 }
+            }
                 .recoverTotal { e =>
                     // NGの場合はバリデーションエラーを返す
                     Future.successful(BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e))))
