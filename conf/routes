@@ -29,7 +29,7 @@ POST        /api/users/insertMessages             controllers.MessagesController
 GET         /api/users/messages/:partnerId        controllers.MessagesController.selectMessages(partnerId: Int)
 
 # マッチング処理
-POST        /api/users/matching                   controllers.MatchingController.insertMatchRelation
+POST        /api/users/matching                   controllers.MatchingsController.insertMatchRelation
 
 # 登録店舗処理
 GET         /api/shops/list                       controllers.ShopsController.showShopsList
