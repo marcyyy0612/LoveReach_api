@@ -1,7 +1,7 @@
 package repositories
 
-import controllers.LocationJsonFormatter.LocationForm
 import javax.inject.Inject
+import models.LocationJsonFormatter.LocationForm
 import models.Tables._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}

@@ -10,6 +10,7 @@ import play.api.mvc._
 import play.filters.csrf._
 import slick.jdbc.MySQLProfile
 import slick.jdbc.MySQLProfile.api._
+import utils.Enums._
 
 import scala.concurrent.ExecutionContext
 
@@ -21,12 +22,7 @@ class UsersJDBC @Inject()(cache: AsyncCacheApi,
     extends AbstractController(cc)
         with HasDatabaseConfigProvider[MySQLProfile] {
 
-    val Male = Some(1)
-    val Female = Some(2)
-    val Diver = Some(3)
-    val LIKE = 1
-
-    def signinUserDBIO(uuid: Option[String]) = {
+   def signinUserDBIO(uuid: Option[String]) = {
         def userDBIO(userId: Int) =
             Users.filter(_.userId === userId.bind).result
 
@@ -69,9 +65,9 @@ class UsersJDBC @Inject()(cache: AsyncCacheApi,
             })
             searchGender <- myInfoDBIO(userId) //自分が選択した興味のある性別
             resultUsers = searchGender match { //選択した興味のある性別によって選別
-                case Male => nonSelectedUsers.filter(_.sex == 2)
-                case Female => nonSelectedUsers.filter(_.sex == 1)
-                case Diver => nonSelectedUsers
+                case MALE => nonSelectedUsers.filter(_.sex == 2)
+                case FEMALE => nonSelectedUsers.filter(_.sex == 1)
+                case DIVER => nonSelectedUsers
                 case _ => Nil
             }
 

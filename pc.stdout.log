@@ -1,0 +1,14 @@
+11 09, 2018 2:21:57 午前 com.orientechnologies.common.log.OLogManager log
+情報: Configuration of usage of soft references inside of containers of results of SQL execution
+11 09, 2018 2:21:57 午前 com.orientechnologies.common.log.OLogManager log
+情報: Initial or maximum values of heap memory usage are NOT set, containers of results of SQL executors will NOT use soft references by default
+11 09, 2018 2:21:57 午前 com.orientechnologies.common.log.OLogManager log
+情報: Auto configuration of disk cache size.
+11 09, 2018 2:21:57 午前 com.orientechnologies.common.log.OLogManager log
+情報: Disk cache size is directly set by the user to the 64 mb
+11 09, 2018 2:21:57 午前 com.orientechnologies.common.log.OLogManager log
+警告: The configured memory chunk size (2147483647 bytes) is larger than the configured maximum cache size (67108864 bytes). That may cause overallocation of a memory which will be wasted, please tune the configuration up. Use the storage.diskCache.bufferSize OrientDB option to raise the cache memory size or memory.chunk.size OrientDB option to lower memory chunk size.
+11 09, 2018 2:21:57 午前 com.orientechnologies.common.log.OLogManager log
+情報: Lowering memory chunk size from 2,147,483,647B to 67,108,864B.
+11 09, 2018 2:21:58 午前 com.orientechnologies.common.log.OLogManager log
+情報: Storage 'plocal:/Users/marcy/workspace/BizReach/finaltraining2018/LoveReach_api/.ensime_cache/graph-2.0.5' is opened under OrientDB distribution : 2.2.33 (build 77584cd6827f647cf4aa231cf27bd6f10bc04e2c, branch 2.2.x)

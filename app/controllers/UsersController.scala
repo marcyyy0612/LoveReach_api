@@ -22,10 +22,6 @@ class UsersController @Inject()(cache: AsyncCacheApi,
     extends AbstractController(cc)
         with HasDatabaseConfigProvider[MySQLProfile] {
 
-    val Male = Some(1)
-    val Female = Some(2)
-    val Diver = Some(3)
-
     def selectSigninUser: Action[AnyContent] =
         Action.async { implicit rs =>
             val uuid = rs.session.get("UUID")
